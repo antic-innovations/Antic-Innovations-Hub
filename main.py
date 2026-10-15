@@ -206,3 +206,37 @@ elif page == "📈 B2B Investor Tracker":
                     new_inv = {"id": len(data.get("investor_pipeline", [])) + 1, "firm": firm.strip(), "amount": amount, "stage": stage, "status": "High Priority"}
                     data["investor_pipeline"].append(new_inv)
                     save_data(data)
+import requests
+
+def send_live_whatsapp_message(customer_phone, reply_text):
+    """
+    Triggers an official live WhatsApp message transmission 
+    directly to a customer's device using Meta Graph API infrastructure nodes.
+    """
+    # Replace these placeholders with your actual Meta Developer credentials
+    ACCESS_TOKEN = "YOUR_META_PERMANENT_ACCESS_TOKEN"
+    PHONE_NUMBER_ID = "YOUR_META_WHATSAPP_PHONE_NUMBER_ID"
+    
+    url = f"https://facebook.com{PHONE_NUMBER_ID}/messages"
+    
+    headers = {
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": customer_phone,
+        "type": "text",
+        "text": {
+            "preview_url": False,
+            "body": reply_text
+        }
+    }
+    
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        return response.json()
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
