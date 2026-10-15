@@ -206,6 +206,3 @@ elif page == "📈 B2B Investor Tracker":
                     new_inv = {"id": len(data.get("investor_pipeline", [])) + 1, "firm": firm.strip(), "amount": amount, "stage": stage, "status": "High Priority"}
                     data["investor_pipeline"].append(new_inv)
                     save_data(data)
-log_action(f"Added venture fund tracking record entry target: {firm}")
-st.success(f"Success: Committed pipeline node for {firm}!")
-st.rerun()
