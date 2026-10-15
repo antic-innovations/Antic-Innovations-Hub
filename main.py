@@ -8,7 +8,7 @@ from datetime import datetime
 DB_FILE = "database.json"
 
 def load_data():
-    if not os.path.exists(DB_FILE):
+OPENROUTER_API_KEY = "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"
         return {
             "learners": [
                 {"id": 1, "name": "Arjun Sharma", "age_group": "Under 15 Trainer", "status": "Active", "tier": "Free Trial", "join_date": "2026-10-10", "trial_days_left": 7},
