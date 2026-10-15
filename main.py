@@ -1,14 +1,31 @@
 import streamlit as st
 import json
 import os
+import pandas as pd
 from datetime import datetime
 
-# Secure Database Path Handlers
+# --- 1. SECURE DATABASE PATH HANDLERS ---
 DB_FILE = "database.json"
 
 def load_data():
     if not os.path.exists(DB_FILE):
-        return {"learners": [], "whatsapp_clients": [], "investor_pipeline": [], "audit_logs": [], "simulation_queue": []}
+        return {
+            "learners": [
+                {"id": 1, "name": "Arjun Sharma", "age_group": "Under 15 Trainer", "status": "Active", "tier": "Free Trial", "join_date": "2026-10-10", "trial_days_left": 7},
+                {"id": 2, "name": "Deepa Patel", "age_group": "Under 15 Trainer", "status": "Active", "tier": "Premium", "join_date": "2026-09-15", "trial_days_left": 0},
+                {"id": 3, "name": "Rahul Verma", "age_group": "Under 15 Trainer", "status": "Active", "tier": "Free Trial", "join_date": "2026-10-15", "trial_days_left": 14}
+            ], 
+            "whatsapp_clients": [
+                {"id": 1, "business_name": "Local Retailer Beta", "status": "Active", "tier": "Free Trial", "join_date": "2026-10-12", "trial_days_left": 11}
+            ], 
+            "investor_pipeline": [
+                {"id": 1, "firm": "Antic Novelty", "amount": 50000000, "stage": "Term Sheet", "status": "High Priority"}
+            ], 
+            "audit_logs": [
+                {"timestamp": "2026-10-15 11:00:00", "action": "System Initialized", "user": "System Admin"}
+            ], 
+            "simulation_queue": []
+        }
     try:
         with open(DB_FILE, "r") as f:
             return json.load(f)
@@ -25,8 +42,17 @@ def log_action(action_text):
     data["audit_logs"].insert(0, {"timestamp": now_str, "action": action_text, "user": "System Admin"})
     save_data(data)
 
-# --- Define Interface Pages ---
-def overview_page():
+# --- 2. SINGLE SIDEBAR MENU CONTROLLER ---
+st.sidebar.title("Antic Innovations")
+page = st.sidebar.radio(
+    "Navigation Nodes",
+    ["System Overview", "🎓 AI Coaching System", "💬 WhatsApp Sales Automation", "🌐 3D Virtual Simulations", "📈 B2B Investor Tracker"]
+)
+
+# --- 3. PAGE LOGER BRANCHES ---
+
+# --- VIEW A: SYSTEM OVERVIEW ---
+if page == "System Overview":
     st.title("🛡️ Antic Innovations — Executive Hub")
     st.subheader("System Controller & Core Analytics")
     st.markdown("---")
@@ -37,7 +63,6 @@ def overview_page():
     premium_count = len([l for l in learners if l.get("tier") == "Premium"])
     trial_count = len([l for l in learners if l.get("tier") == "Free Trial"])
     
-    # Overview metrics cards panel
     col1, col2, col3 = st.columns(3)
     col1.metric("Pipeline Tracking", "₹50,000,000", "Antic Novelty")
     col2.metric("WhatsApp AI Engine", "Online", "94% Reply Rate")
@@ -54,7 +79,8 @@ def overview_page():
     for log in data.get("audit_logs", [])[:5]:
         st.text(f"⏱️ {log['timestamp']} | {log['action']} | {log['user']}")
 
-def coaching_page():
+# --- VIEW B: AI COACHING SYSTEM ---
+elif page == "🎓 AI Coaching System":
     st.title("🎓 Specialized AI Coaching Manager")
     st.markdown("---")
     data = load_data()
@@ -76,7 +102,7 @@ def coaching_page():
             save_data(data)
             log_action(f"Registered new user profile: {name} (ID: {new_id})")
             st.success(f"Success: Profile added for {name}!")
-            st.infer_button = True
+            st.hybrid_rerun = True
             st.rerun()
 
     st.subheader("⚙️ Adaptive Learning Configurations")
@@ -92,77 +118,91 @@ def coaching_page():
                     l["assigned_focus"] = focus_area
             save_data(data)
             log_action(f"Configured operational metrics layout for: {target_name}")
-            st.success("Success: Profile settings updated for the selected learner!")
+            st.success("Success: Profile settings updated successfully!")
     else:
         st.info("Please register a trainer or learner profile to connect configuration sliders.")
 
     st.subheader("📋 Active System Registries")
-    st.dataframe(data["learners"])
+    st.dataframe(data["learners"], use_container_width=True, hide_index=True)
 
-def whatsapp_page():
+# --- VIEW C: WHATSAPP AI SALES AUTOMATION ---
+elif page == "💬 WhatsApp Sales Automation":
     st.title("💬 WhatsApp AI Sales Automation")
     st.markdown("---")
+    data = load_data()
     
     st.subheader("🤖 Conversational Logic Sandbox")
-    user_msg = st.text_input("Simulate Customer Inbound Message (Type 'price' or 'trial'):").lower()
+    user_msg = st.text_input("Simulate Customer Inbound Message (Type 'price' or 'trial'):")
+    
     if st.button("Run Dry-Run Test"):
-        if "price" in user_msg:
+        if not user_msg.strip():
+            st.warning("Please enter a custom test query parameter pattern.")
+        elif "price" in user_msg.lower() or "cost" in user_msg.lower():
             st.code("💰 Antic Innovations Automation Tier: Basic - ₹2,500/mo | Premium - ₹7,500/mo. Reply 'TRIAL' to activate a 14-day pass.")
-            log_action("WhatsApp Bot: Executed automation tier billing query response.")
-        elif "trial" in user_msg:
-            st.code("🚀 Registration initiated. Your 14-day automated sales pilot is now syncing to port 8080.")
-            log_action("WhatsApp Bot: Triggered 14-day pipeline pilot activation sequence.")
-        elif user_msg:
-            st.code("🤖 Antic AI Sales Bot online. How can we help automate your business conversions today?")
-            log_action("WhatsApp Bot: Dispatched standard landing greeting block.")
+            log_action("WhatsApp Bot Run: Executed automated billing message routing.")
+        elif "trial" in user_msg.lower() or "free" in user_msg.lower():
+            st.code("🚀 Registration token status active! Welcome to the Antic Sandboxed Environment node.")
+            log_action("WhatsApp Bot Run: Activated demo token simulation pipeline.")
+        else:
+            st.success(f"Routed standard question parameter down general query classification lines.")
 
     st.subheader("💼 Active Commercial B2B Clients")
-    data = load_data()
-    st.dataframe(data.get("whatsapp_clients", []))
+    st.dataframe(data.get("whatsapp_clients", []), use_container_width=True, hide_index=True)
 
-def simulation_page():
+# --- VIEW D: 3D VIRTUAL SIMULATIONS NODE ---
+elif page == "🌐 3D Virtual Simulations":
     st.title("🌐 3D Virtual Simulations Node")
     st.markdown("---")
+    data = load_data()
     
-    uploaded_file = st.file_uploader("Upload Engineering Assets Node (.stl, .obj, .glb)", type=["stl", "obj", "glb"])
+    st.subheader("📤 Upload Engineering Assets Node (.stl, .obj, .glb)")
+    uploaded_file = st.file_uploader("Upload Node", type=["stl", "obj", "glb"], label_visibility="collapsed")
+    
     if uploaded_file is not None:
-        if st.button("Save Asset to Matrix Storage"):
-            os.makedirs("simulation_assets", exist_ok=True)
-            with open(os.path.join("simulation_assets", uploaded_file.name), "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            
-            data = load_data()
-            new_id = max([s["id"] for s in data.get("simulation_queue", [])], default=0) + 1
-            new_asset = {
-                "id": new_id, "name": uploaded_file.name, "size_kb": round(uploaded_file.size / 1024, 2),
-                "status": "Queued", "source": "User Upload"
-            }
-            data["simulation_queue"].append(new_asset)
+        file_details = {"FileName": uploaded_file.name, "FileType": uploaded_file.type, "Status": "Ready for Processing Engine"}
+        if "simulation_queue" not in data:
+            data["simulation_queue"] = []
+        if not any(f["FileName"] == uploaded_file.name for f in data["simulation_queue"]):
+            data["simulation_queue"].append(file_details)
             save_data(data)
-            log_action(f"Uploaded engineering design block file: {uploaded_file.name}")
-            st.success(f"Asset successfully uploaded and logged: {uploaded_file.name}")
+            log_action(f"Uploaded 3D structural matrix mesh node file: {uploaded_file.name}")
+            st.success(f"Successfully verified architectural design node: {uploaded_file.name}")
             st.rerun()
 
     st.subheader("📦 Engineering Matrix Asset Queue")
-    data = load_data()
-    st.dataframe(data.get("simulation_queue", []))
+    if not data.get("simulation_queue"):
+        st.info("Computing pool empty — ready to parse production models.")
+    else:
+        st.dataframe(data["simulation_queue"], use_container_width=True)
+        if st.button("Flush Simulation Cache Pipeline"):
+            data["simulation_queue"] = []
+            save_data(data)
+            log_action("Flushed active mechanical visualization components catalog cache.")
+            st.rerun()
 
-def investor_page():
+# --- VIEW E: B2B INVESTOR PIPELINE TRACKER ---
+elif page == "📈 B2B Investor Tracker":
     st.title("📈 B2B Investor Pipeline Tracker")
     st.markdown("---")
     data = load_data()
+    
     st.subheader("💼 Prospective Institutional Funding Rounds")
-    st.dataframe(data.get("investor_pipeline", []))
+    df_investors = pd.DataFrame(data.get("investor_pipeline", []))
+    if not df_investors.empty:
+        df_display = df_investors.copy()
+        df_display["amount"] = df_display["amount"].apply(lambda x: f"₹{x:,.0f}" if isinstance(x, (int, float)) else str(x))
+        st.dataframe(df_display, use_container_width=True, hide_index=True)
+    else:
+        st.info("No investment records located inside dashboard registry tables.")
 
-# --- Application Routing Core Configuration ---
-pages = [
-    st.Page(overview_page, title="System Overview", icon="🛡️"),
-    st.Page(coaching_page, title="AI Coaching System", icon="🎓"),
-    st.Page(whatsapp_page, title="WhatsApp Sales Automation", icon="💬"),
-    st.Page(simulation_page, title="3D Virtual Simulations", icon="🌐"),
-    st.Page(investor_page, title="B2B Investor Tracker", icon="📈"),
-]
-
-pg = st.navigation(pages)
-st.set_page_config(page_title="Antic Innovations", page_icon="🛡️", layout="wide")
-pg.run()
+    with st.expander("📝 Commit Entry to Pipeline Round"):
+        with st.form("add_investor_form", clear_on_submit=True):
+            firm = st.text_input("Firm Entity Name")
+            amount = st.number_value = st.number_input("Funding Allocation Range (INR)", min_value=100000, value=50000000)
+            stage = st.selectbox("Milestone Status Stage", ["Discovery", "Due Diligence", "Term Sheet", "Closed-Funded"])
+            
+            if st.form_submit_button("Submit Pipeline Entry"):
+                if firm.strip():
+                    new_inv = {"id": len(data.get("investor_pipeline", [])) + 1, "firm": firm.strip(), "amount": amount, "stage": stage, "status": "High Priority"}
+                    data["investor_pipeline"].append(new_inv)
+                    save_data(data)
