@@ -1,4 +1,3 @@
-
 import streamlit as st
 import json
 import os
@@ -115,7 +114,6 @@ elif page == "🎓 AI Coaching System":
     st.title("🎓 Specialized AI Coaching Manager")
     st.markdown("---")
     data = load_data()
-    
     st.subheader("➕ Register New Learner Profile")
     with st.form("add_learner_form", clear_on_submit=True):
         name = st.text_input("Full Registered Name")
