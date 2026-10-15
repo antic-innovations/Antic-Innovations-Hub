@@ -1,3 +1,4 @@
+# file: main.py
 import streamlit as st
 import json
 import os
@@ -10,7 +11,6 @@ OPENROUTER_API_KEY = "sk-or-v1-5fcb4b10e2a388a5f670ca4b1c3e30e4c7780f323ddd3a7e3
 DB_FILE = "database.json"
 
 def load_data():
-    """Initializes or reads application tables from disk storage memory."""
     if not os.path.exists(DB_FILE):
         return {
             "learners": [
@@ -36,22 +36,18 @@ def load_data():
         return {"learners": [], "whatsapp_clients": [], "investor_pipeline": [], "audit_logs": [], "simulation_queue": []}
 
 def save_data(data):
-    """Commits system state parameters cleanly down to persistent local files."""
     with open(DB_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
 def log_action(action_text):
-    """Saves system audit history entries straight into your analytics logs."""
     data = load_data()
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     data["audit_logs"].insert(0, {"timestamp": now_str, "action": action_text, "user": "System Admin"})
     save_data(data)
 
 def ask_live_ai_model(prompt_text):
-    """Queries OpenRouter to generate smart responses for your clients or investors."""
     if not OPENROUTER_API_KEY or OPENROUTER_API_KEY == "YOUR_OPENROUTER_API_KEY_HERE":
         return "⚠️ Configuration Missing: OpenRouter API Token Key is not configured."
-        
     url = "https://openrouter.ai"
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -86,19 +82,16 @@ page = st.sidebar.radio(
 
 # --- 4. DATA ENGINE GRAPHIC SYSTEM MAPPING CONTROLLERS ---
 
-# --- PAGE A: SYSTEM OVERVIEW ---
 if page == "System Overview":
     st.title("🛡️ Antic Innovations — Executive Hub")
     st.subheader("Central Operations Controller & Growth Telemetry")
     st.markdown("---")
-    
     data = load_data()
     learners = data.get("learners", [])
     active_learners = [l for l in learners if l.get("status") == "Active"]
     premium_count = len([l for l in learners if l.get("tier") == "Premium"])
     trial_count = len([l for l in learners if l.get("tier") == "Free Trial"])
     
-    # Financial and Engagement Metrics Panel for Investors
     col1, col2, col3 = st.columns(3)
     total_funding = sum([float(inv['amount']) for inv in data.get("investor_pipeline", [])])
     col1.metric("Pipeline Deal Flow Tracking", f"₹{total_funding:,.0f}", "Antic Novelty Target Room")
@@ -118,7 +111,6 @@ if page == "System Overview":
     for log in data.get("audit_logs", [])[:5]:
         st.caption(f"⏱️ {log['timestamp']} | {log['action']} | Authority: {log['user']}")
 
-# --- PAGE B: AI COACHING SYSTEM ---
 elif page == "🎓 AI Coaching System":
     st.title("🎓 Specialized AI Coaching Manager")
     st.markdown("---")
@@ -165,7 +157,6 @@ elif page == "🎓 AI Coaching System":
     st.subheader("📋 Active System Registries")
     st.dataframe(data["learners"], use_container_width=True, hide_index=True)
 
-# --- PAGE C: WHATSAPP AI SALES AUTOMATION ---
 elif page == "💬 WhatsApp Sales Automation":
     st.title("💬 WhatsApp AI Sales Automation")
     st.markdown("---")
@@ -190,7 +181,6 @@ elif page == "💬 WhatsApp Sales Automation":
     st.subheader("💼 Registered B2B Automation Clients")
     st.dataframe(data.get("whatsapp_clients", []), use_container_width=True, hide_index=True)
 
-    # Dynamic Client Provisioning Onboarding Module
     st.write("")
     with st.expander("➕ Provision & Onboard New B2B Client Platform Node"):
         with st.form("add_b2b_client_form", clear_on_submit=True):
@@ -199,39 +189,35 @@ elif page == "💬 WhatsApp Sales Automation":
             trial_duration = st.number_input("Allotted Sandbox Life Horizon (Days)", min_value=1, max_value=90, value=14)
             
             if st.form_submit_button("Deploy Client Infrastructure"):
-        if st.button("Flush Engine Cache Pipeline"):
-            data["simulation_queue"] = []
-            save_data(data)
-            log_action("Flushed simulation cache registries.")
-            st.rerun()
-
-# --- PAGE E: B2B INVESTOR PIPELINE TRACKER ---
-elif page == "📈 B2B Investor Tracker":
-    st.title("📈 B2B Investor Pipeline Tracker")
-    st.markdown("---")
-    data = load_data()
-    
-    st.subheader("💼 Active Venture Funding Round Allocations")
-    df_investors = pd.DataFrame(data.get("investor_pipeline", []))
-    if not df_investors.empty:
-        df_display = df_investors.copy()
-        df_display["amount"] = df_display["amount"].apply(lambda x: f"₹{x:,.0f}" if isinstance(x, (int, float)) else str(x))
-        st.dataframe(df_display, use_container_width=True, hide_index=True)
-    else:
-        st.info("Venture matrix pipeline registers are completely blank.")
-
-    st.write("")
-    with st.expander("📝 Commit New Institutional Allocation Node into Capital Pipeline"):
-        with st.form("add_investor_form", clear_on_submit=True):
-            firm_name = st.text_input("Venture / Fund Entity Title Name")
-            amount = st.number_input("Investment Allocation Scale (INR Value)", min_value=100000, value=50000000)
-            stage = st.selectbox("Milestone Status Stage", ["Discovery Selection", "Due Diligence Review", "Term Sheet Verification", "Closed-Funded Matrix"])
-            
-            if st.form_submit_button("Submit Pipeline Node Entry"):
-                if firm_name.strip():
-                    new_inv = {"id": len(data.get("investor_pipeline", [])) + 1, "firm": firm_name.strip(), "amount": amount, "stage": stage, "status": "High Priority"}
-                    data["investor_pipeline"].append(new_inv)
-                    save_data(data)
-                    log_action(f"Pushed capital placement allocation node: {firm_name.strip()} (₹{amount:,.0f})")
-                    st.success(f"Success: Committed tracking data matrix for fund node: {firm_name}!")
-                    st.rerun()
+                if b2b_name.strip():
+                    new_c_id = max([c["id"] for c in data.get("whatsapp_clients", [])], default=0) + 1
+                    new_client = {
+                        "id": new_c_id,
+                        "business_name": b2b_name.strip(),
+                        "status": "Active",
+                        "tier": client_tier,
+                        "join_date": datetime.now().strftime("%Y-%m-%d"),
+                        "trial_days_left": int(trial_duration)
+                    }
+                    if "whatsapp_clients" not in data:
+pd.DataFrame(data.get("investor_pipeline", []))
+if not df_investors.empty:
+df_display = df_investors.copy()
+df_display["amount"] = df_display["amount"].apply(lambda x: f"₹{x:,.0f}" if isinstance(x, (int, float)) else str(x))
+st.dataframe(df_display, use_container_width=True, hide_index=True)
+else:
+st.info("Venture matrix pipeline registers are completely blank.")
+st.write("")
+with st.expander("📝 Commit New Institutional Allocation Node into Capital Pipeline"):
+with st.form("add_investor_form", clear_on_submit=True):
+firm_name = st.text_input("Venture / Fund Entity Title Name")
+amount = st.number_input("Investment Allocation Scale (INR Value)", min_value=100000, value=50000000)
+stage = st.selectbox("Milestone Status Stage", ["Discovery Selection", "Due Diligence Review", "Term Sheet Verification", "Closed-Funded Matrix"])
+if st.form_submit_button("Submit Pipeline Node Entry"):
+if firm_name.strip():
+new_inv = {"id": len(data.get("investor_pipeline", [])) + 1, "firm": firm_name.strip(), "amount": amount, "stage": stage, "status": "High Priority"}
+data["investor_pipeline"].append(new_inv)
+save_data(data)
+log_action(f"Pushed capital placement allocation node: {firm_name.strip()} (₹{amount:,.0f})")
+st.success(f"Success: Committed tracking data matrix for fund node: {firm_name}!")
+st.rerun()
