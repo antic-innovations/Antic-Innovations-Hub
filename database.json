@@ -1,0 +1,17 @@
+{
+  "learners": [
+    {"id": 1, "name": "Arjun Sharma", "age_group": "Under 15 Trainer", "status": "Active", "tier": "Free Trial", "join_date": "2026-10-10", "trial_days_left": 7},
+    {"id": 2, "name": "Deepa Patel", "age_group": "Under 15 Trainer", "status": "Active", "tier": "Premium", "join_date": "2026-09-15", "trial_days_left": 0},
+    {"id": 3, "name": "Rahul Verma", "age_group": "Under 15 Trainer", "status": "Active", "tier": "Free Trial", "join_date": "2026-10-15", "trial_days_left": 14}
+  ],
+  "whatsapp_clients": [
+    {"id": 1, "business_name": "Local Retailer Beta", "status": "Active", "tier": "Free Trial", "join_date": "2026-10-12", "trial_days_left": 11}
+  ],
+  "investor_pipeline": [
+    {"id": 1, "firm": "Antic Novelty", "amount": "₹50,000,000", "stage": "Term Sheet", "status": "High Priority"}
+  ],
+  "audit_logs": [
+    {"timestamp": "2026-10-15 11:00:00", "action": "System Initialized", "user": "System Admin"}
+  ],
+  "simulation_queue": []
+}
