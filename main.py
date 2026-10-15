@@ -199,4 +199,39 @@ elif page == "💬 WhatsApp Sales Automation":
             trial_duration = st.number_input("Allotted Sandbox Life Horizon (Days)", min_value=1, max_value=90, value=14)
             
             if st.form_submit_button("Deploy Client Infrastructure"):
-                if b2b_name.strip():
+        if st.button("Flush Engine Cache Pipeline"):
+            data["simulation_queue"] = []
+            save_data(data)
+            log_action("Flushed simulation cache registries.")
+            st.rerun()
+
+# --- PAGE E: B2B INVESTOR PIPELINE TRACKER ---
+elif page == "📈 B2B Investor Tracker":
+    st.title("📈 B2B Investor Pipeline Tracker")
+    st.markdown("---")
+    data = load_data()
+    
+    st.subheader("💼 Active Venture Funding Round Allocations")
+    df_investors = pd.DataFrame(data.get("investor_pipeline", []))
+    if not df_investors.empty:
+        df_display = df_investors.copy()
+        df_display["amount"] = df_display["amount"].apply(lambda x: f"₹{x:,.0f}" if isinstance(x, (int, float)) else str(x))
+        st.dataframe(df_display, use_container_width=True, hide_index=True)
+    else:
+        st.info("Venture matrix pipeline registers are completely blank.")
+
+    st.write("")
+    with st.expander("📝 Commit New Institutional Allocation Node into Capital Pipeline"):
+        with st.form("add_investor_form", clear_on_submit=True):
+            firm_name = st.text_input("Venture / Fund Entity Title Name")
+            amount = st.number_input("Investment Allocation Scale (INR Value)", min_value=100000, value=50000000)
+            stage = st.selectbox("Milestone Status Stage", ["Discovery Selection", "Due Diligence Review", "Term Sheet Verification", "Closed-Funded Matrix"])
+            
+            if st.form_submit_button("Submit Pipeline Node Entry"):
+                if firm_name.strip():
+                    new_inv = {"id": len(data.get("investor_pipeline", [])) + 1, "firm": firm_name.strip(), "amount": amount, "stage": stage, "status": "High Priority"}
+                    data["investor_pipeline"].append(new_inv)
+                    save_data(data)
+                    log_action(f"Pushed capital placement allocation node: {firm_name.strip()} (₹{amount:,.0f})")
+                    st.success(f"Success: Committed tracking data matrix for fund node: {firm_name}!")
+                    st.rerun()
