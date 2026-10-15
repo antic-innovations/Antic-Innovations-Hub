@@ -1,5 +1,5 @@
 import streamlit as st
-import json, os, pandas as pd, requests, re
+import json, os, pandas as pd, requests, re, urllib.parse
 from datetime import datetime
 
 st.set_page_config(page_title="Antic Innovations Control Room", page_icon="🚀", layout="wide")
@@ -39,11 +39,11 @@ def ask_live_ai_model(prompt):
         res = requests.post("https://openrouter.ai",
             headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"},
             json={"model": "meta-llama/llama-3-8b-instruct:free", "messages": [
-                {"role": "system", "content": "You are the AI engine for Antic Innovations. Give short, sharp sales & investor answers."},
+                {"role": "system", "content": "You are the AI desk for Antic Novelty (Ankleshwar) & Antic Innovations. Give short, polite commercial answers."},
                 {"role": "user", "content": prompt}
             ]}, timeout=10)
         return res.json()["choices"]["message"]["content"]
-    except: return "🤖 Automation Engine Online — Syncing queue."
+    except: return "🤖 Antic Novelty Desk: Welcome! How can we help with your order today?"
 
 st.sidebar.title("Antic Innovations")
 page = st.sidebar.radio("Control Center", ["System Overview", "🎓 AI Coaching", "💬 WhatsApp Sales", "🌐 3D Simulations", "📈 Investor Tracker"])
@@ -54,7 +54,7 @@ if page == "System Overview":
     c1, c2, c3 = st.columns(3)
     tot = sum(parse_num(i.get('amount', 0)) for i in data.get("investor_pipeline", []))
     c1.metric("Pipeline Deal Flow", f"₹{tot:,.0f}", "Antic Novelty")
-    c2.metric("WhatsApp AI Engine", "Online", "94% Reply Rate")
+    c2.metric("WhatsApp AI Desk", "Online", "94% Reply Rate")
     c3.metric("Coaching Adoption", f"{len([l for l in data.get('learners', []) if l.get('status')=='Active'])} Active", "Live Sync")
     if data.get("learners"): st.bar_chart(pd.DataFrame(data["learners"])["tier"].value_counts(), color="#2e7d32")
     for log in data.get("audit_logs", [])[:5]: st.caption(f"⏱️ {log['timestamp']} | {log['action']}")
@@ -73,19 +73,54 @@ elif page == "🎓 AI Coaching":
 
 elif page == "💬 WhatsApp Sales":
     st.title("💬 WhatsApp AI Sales Automation")
-    umsg = st.text_input("Test Inbound Message:", placeholder="How much is basic automation?")
-    if st.button("Execute Dry-Run AI"):
-        st.code(ask_live_ai_model(umsg or "Pricing and trial?"), language="markdown")
-        log_action("Executed WhatsApp AI Sandbox Test")
+    st.caption("Shop Desk Bridge for Antic Novelty & B2B Clients (Sumer11)")
+    
+    umsg = st.text_input("Customer Inbound Message:", placeholder="e.g., Do you have bulk novelty items available?")
+    cust_phone = st.text_input("Customer Phone (optional, e.g., 919876543210):")
+    
+    if st.button("🤖 Generate Smart AI Desk Reply"):
+        ans = ask_live_ai_model(umsg or "Catalog and store hours?")
+        st.session_state.ai_draft = ans
+        st.code(ans, language="markdown")
+        log_action("Generated AI Shop Reply")
+
+    # One-Click Dispatch to WhatsApp Web / App
+    draft_text = getattr(st.session_state, "ai_draft", "")
+    if draft_text:
+        encoded_msg = urllib.parse.quote(draft_text)
+        phone_param = f"phone={cust_phone.strip()}&" if cust_phone.strip() else ""
+        wa_url = f"https://whatsapp.com?{phone_param}text={encoded_msg}"
+        st.markdown(f'<a href="{wa_url}" target="_blank"><button style="background-color:#25D366; color:white; border:none; padding:10px 20px; font-size:16px; border-radius:5px; font-weight:bold; cursor:pointer;">🚀 Open WhatsApp with Draft Reply</button></a>', unsafe_allow_html=True)
+        st.write("")
+
     if data.get("whatsapp_clients"): st.dataframe(pd.DataFrame(data["whatsapp_clients"]), use_container_width=True, hide_index=True)
+    
     with st.expander("➕ Onboard B2B Client"):
         with st.form("add_b2b", clear_on_submit=True):
             b_nm = st.text_input("Business Name")
-            b_tr = st.selectbox("Tier", ["Free Trial", "Basic Automation", "Premium Enterprise"])
+            b_tr = st.selectbox("Tier", ["Free Trial", "Basic Automation (₹2,500/mo)", "Premium Enterprise (₹7,500/mo)"])
             if st.form_submit_button("Deploy Client") and b_nm.strip():
                 cid = max([c.get("id", 0) for c in data.get("whatsapp_clients", [])], default=0) + 1
-                data.setdefault("whatsapp_clients", []).append({"id": cid, "business_name": b_nm.strip(), "status": "Active", "tier": b_tr, "join_date": datetime.now().strftime("%Y-%m-%d"), "trial_days_left": 14})
+                tier_clean = b_tr.split(" (")[0]
+                data.setdefault("whatsapp_clients", []).append({"id": cid, "business_name": b_nm.strip(), "status": "Active", "tier": tier_clean, "join_date": datetime.now().strftime("%Y-%m-%d"), "trial_days_left": 14})
                 save_data(data); log_action(f"Onboarded client: {b_nm}"); st.rerun()
+
+    with st.expander("⚡ Upgrade Client Tier"):
+        with st.form("upgrade_b2b", clear_on_submit=True):
+            client_names = [c["business_name"] for c in data.get("whatsapp_clients", [])]
+            target_client = st.selectbox("Select Business to Upgrade", client_names if client_names else ["No clients"])
+            new_tier = st.selectbox("New Service Tier", ["Basic Automation", "Premium Enterprise", "Free Trial"])
+            new_status = st.selectbox("Account Status", ["Active", "Suspended"])
+            if st.form_submit_button("Confirm Tier Upgrade") and client_names:
+                for c in data["whatsapp_clients"]:
+                    if c["business_name"] == target_client:
+                        c["tier"] = new_tier.split(" (")
+                        c["status"] = new_status
+                        c["trial_days_left"] = 0 if new_tier in ["Basic Automation", "Premium Enterprise"] else 14
+                save_data(data)
+                log_action(f"Upgraded {target_client} to {new_tier.split(' (')}")
+                st.success(f"Upgraded {target_client} successfully!")
+                st.rerun()
 
 elif page == "🌐 3D Simulations":
     st.title("🌐 3D Virtual Simulations Node")
