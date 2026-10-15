@@ -3,29 +3,15 @@ import json
 import os
 import pandas as pd
 from datetime import datetime
+import requests
 
-# --- 1. SECURE DATABASE PATH HANDLERS ---
+# --- 1. GLOBAL SECURE PARAMETERS & CONFIGS ---
+OPENROUTER_API_KEY = "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"
 DB_FILE = "database.json"
 
 def load_data():
-OPENROUTER_API_KEY = "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"
-        return {
-            "learners": [
-                {"id": 1, "name": "Arjun Sharma", "age_group": "Under 15 Trainer", "status": "Active", "tier": "Free Trial", "join_date": "2026-10-10", "trial_days_left": 7},
-                {"id": 2, "name": "Deepa Patel", "age_group": "Under 15 Trainer", "status": "Active", "tier": "Premium", "join_date": "2026-09-15", "trial_days_left": 0},
-                {"id": 3, "name": "Rahul Verma", "age_group": "Under 15 Trainer", "status": "Active", "tier": "Free Trial", "join_date": "2026-10-15", "trial_days_left": 14}
-            ], 
-            "whatsapp_clients": [
-                {"id": 1, "business_name": "Local Retailer Beta", "status": "Active", "tier": "Free Trial", "join_date": "2026-10-12", "trial_days_left": 11}
-            ], 
-            "investor_pipeline": [
-                {"id": 1, "firm": "Antic Novelty", "amount": 50000000, "stage": "Term Sheet", "status": "High Priority"}
-            ], 
-            "audit_logs": [
-                {"timestamp": "2026-10-15 11:00:00", "action": "System Initialized", "user": "System Admin"}
-            ], 
-            "simulation_queue": []
-        }
+    if not os.path.exists(DB_FILE):
+        return {"learners": [], "whatsapp_clients": [], "investor_pipeline": [], "audit_logs": [], "simulation_queue": []}
     try:
         with open(DB_FILE, "r") as f:
             return json.load(f)
@@ -42,14 +28,35 @@ def log_action(action_text):
     data["audit_logs"].insert(0, {"timestamp": now_str, "action": action_text, "user": "System Admin"})
     save_data(data)
 
+def ask_live_ai_model(prompt_text):
+    """Queries OpenRouter to generate an instant contextual response path for inbound queries."""
+    if not OPENROUTER_API_KEY or OPENROUTER_API_KEY == "YOUR_OPENROUTER_API_KEY_HERE":
+        return "⚠️ Configuration Missing: OpenRouter API Token Key is not configured."
+        
+    url = "https://openrouter.ai"
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "meta-llama/llama-3-8b-instruct:free",
+        "messages": [
+            {"role": "system", "content": "You are a professional sales automation assistant for Antic Innovations. Give brief, highly accurate, short answers."},
+            {"role": "user", "content": prompt_text}
+        ]
+    }
+    try:
+        res = requests.post(url, json=payload, headers=headers, timeout=10)
+        return res.json()["choices"]["message"]["content"]
+    except:
+        return "🤖 Our automated lines are currently performing system synchronization optimization passes. An expert agent will message you directly!"
+
 # --- 2. SINGLE SIDEBAR MENU CONTROLLER ---
 st.sidebar.title("Antic Innovations")
 page = st.sidebar.radio(
     "Navigation Nodes",
     ["System Overview", "🎓 AI Coaching System", "💬 WhatsApp Sales Automation", "🌐 3D Virtual Simulations", "📈 B2B Investor Tracker"]
 )
-
-# --- 3. PAGE LOGER BRANCHES ---
 
 # --- VIEW A: SYSTEM OVERVIEW ---
 if page == "System Overview":
@@ -100,9 +107,8 @@ elif page == "🎓 AI Coaching System":
             }
             data["learners"].append(new_learner)
             save_data(data)
-            log_action(f"Registered new user profile: {name} (ID: {new_id})")
+            log_action(f"Registered new user profile: {name}")
             st.success(f"Success: Profile added for {name}!")
-            st.hybrid_rerun = True
             st.rerun()
 
     st.subheader("⚙️ Adaptive Learning Configurations")
@@ -117,7 +123,7 @@ elif page == "🎓 AI Coaching System":
                     l["assigned_difficulty"] = slider_val
                     l["assigned_focus"] = focus_area
             save_data(data)
-            log_action(f"Configured operational metrics layout for: {target_name}")
+            log_action(f"Configured operational metrics for: {target_name}")
             st.success("Success: Profile settings updated successfully!")
     else:
         st.info("Please register a trainer or learner profile to connect configuration sliders.")
@@ -132,24 +138,21 @@ elif page == "💬 WhatsApp Sales Automation":
     data = load_data()
     
     st.subheader("🤖 Conversational Logic Sandbox")
-    user_msg = st.text_input("Simulate Customer Inbound Message (Type 'price' or 'trial'):")
+    user_msg = st.text_input("Simulate Customer Inbound Message (Ask any sales question to test the live AI):")
     
     if st.button("Run Dry-Run Test"):
         if not user_msg.strip():
             st.warning("Please enter a custom test query parameter pattern.")
-        elif "price" in user_msg.lower() or "cost" in user_msg.lower():
-            st.code("💰 Antic Innovations Automation Tier: Basic - ₹2,500/mo | Premium - ₹7,500/mo. Reply 'TRIAL' to activate a 14-day pass.")
-            log_action("WhatsApp Bot Run: Executed automated billing message routing.")
-        elif "trial" in user_msg.lower() or "free" in user_msg.lower():
-            st.code("🚀 Registration token status active! Welcome to the Antic Sandboxed Environment node.")
-            log_action("WhatsApp Bot Run: Activated demo token simulation pipeline.")
         else:
-            st.success(f"Routed standard question parameter down general query classification lines.")
+            with st.spinner("Talking to live OpenRouter intelligence pipelines..."):
+                ai_response = ask_live_ai_model(user_msg)
+                st.code(f"💬 Live AI Automation Reply:\n\n{ai_response}")
+                log_action(f"WhatsApp Bot Sandbox Test Executed.")
 
     st.subheader("💼 Active Commercial B2B Clients")
     st.dataframe(data.get("whatsapp_clients", []), use_container_width=True, hide_index=True)
 
-# --- VIEW D: 3D VIRTUAL SIMULATIONS NODE ---
+# --- VIEW D: 3D VIRTUAL SIMULATIONS ---
 elif page == "🌐 3D Virtual Simulations":
     st.title("🌐 3D Virtual Simulations Node")
     st.markdown("---")
@@ -165,7 +168,7 @@ elif page == "🌐 3D Virtual Simulations":
         if not any(f["FileName"] == uploaded_file.name for f in data["simulation_queue"]):
             data["simulation_queue"].append(file_details)
             save_data(data)
-            log_action(f"Uploaded 3D structural matrix mesh node file: {uploaded_file.name}")
+            log_action(f"Uploaded structural node file: {uploaded_file.name}")
             st.success(f"Successfully verified architectural design node: {uploaded_file.name}")
             st.rerun()
 
@@ -177,7 +180,7 @@ elif page == "🌐 3D Virtual Simulations":
         if st.button("Flush Simulation Cache Pipeline"):
             data["simulation_queue"] = []
             save_data(data)
-            log_action("Flushed active mechanical visualization components catalog cache.")
+            log_action("Flushed active visual components catalog cache.")
             st.rerun()
 
 # --- VIEW E: B2B INVESTOR PIPELINE TRACKER ---
@@ -197,108 +200,15 @@ elif page == "📈 B2B Investor Tracker":
 
     with st.expander("📝 Commit Entry to Pipeline Round"):
         with st.form("add_investor_form", clear_on_submit=True):
-            firm = st.text_input("Firm Entity Name")
-            amount = st.number_value = st.number_input("Funding Allocation Range (INR)", min_value=100000, value=50000000)
+            firm_name = st.text_input("Firm Entity Name")
+            amount = st.number_input("Funding Allocation Range (INR)", min_value=100000, value=50000000)
             stage = st.selectbox("Milestone Status Stage", ["Discovery", "Due Diligence", "Term Sheet", "Closed-Funded"])
             
             if st.form_submit_button("Submit Pipeline Entry"):
-                if firm.strip():
-                    new_inv = {"id": len(data.get("investor_pipeline", [])) + 1, "firm": firm.strip(), "amount": amount, "stage": stage, "status": "High Priority"}
+                if firm_name.strip():
+                    new_inv = {"id": len(data.get("investor_pipeline", [])) + 1, "firm": firm_name.strip(), "amount": amount, "stage": stage, "status": "High Priority"}
                     data["investor_pipeline"].append(new_inv)
                     save_data(data)
-import requests
-
-def send_live_whatsapp_message(customer_phone, reply_text):
-    """
-    Triggers an official live WhatsApp message transmission 
-    directly to a customer's device using Meta Graph API infrastructure nodes.
-    """
-    # Replace these placeholders with your actual Meta Developer credentials
-    ACCESS_TOKEN = "YOUR_META_PERMANENT_ACCESS_TOKEN"
-    PHONE_NUMBER_ID = "YOUR_META_WHATSAPP_PHONE_NUMBER_ID"
-    
-    url = f"https://facebook.com{PHONE_NUMBER_ID}/messages"
-    
-    headers = {
-        "Authorization": f"Bearer {ACCESS_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    
-    payload = {
-        "messaging_product": "whatsapp",
-        "recipient_type": "individual",
-        "to": customer_phone,
-        "type": "text",
-        "text": {
-            "preview_url": False,
-            "body": reply_text
-        }
-    }
-    
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        return response.json()
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-from fastapi import FastAPI, Request, Response
-import uvicorn
-from threading import Thread
-
-# Create a background FastAPI engine specifically for the Webhook listener
-api = FastAPI()
-
-VERIFY_TOKEN = "AnticAutomationToken2026"  # Put this exact phrase inside your Meta Dashboard
-
-@api.get("/webhook")
-def meta_verification(request: Request):
-    """
-    Step 1: The Handshake. Meta pings this URL once when you save it 
-    in their developer portal to verify your app is real.
-    """
-    params = request.query_params
-    mode = params.get("hub.mode")
-    token = params.get("hub.verify_token")
-    challenge = params.get("hub.challenge")
-    
-    if mode == "subscribe" and token == VERIFY_TOKEN:
-        return Response(content=challenge, media_type="text/plain")
-    return Response(content="Verification Failed", status_code=403)
-
-
-@api.post("/webhook")
-async def receive_whatsapp_message(request: Request):
-    """
-    Step 2: The Ear. Meta hits this block every single time a customer 
-    sends a real WhatsApp message to your client's number.
-    """
-    payload = await request.json()
-    
-    try:
-        # Extract the incoming text message and the sender's phone number from Meta's deep JSON data layout
-        entry = payload["entry"][0]["changes"][0]["value"]
-        if "messages" in entry:
-            customer_phone = entry["messages"][0]["from"]
-            message_body = entry["messages"][0]["text"]["body"].lower()
-            
-            # --- Your AI Automation Logic ---
-            if "price" in message_body or "cost" in message_body:
-                reply = "💰 Antic Innovations Automation Tier: Basic - ₹2,500/mo | Premium - ₹7,500/mo."
-            elif "trial" in message_body:
-                reply = "🚀 Registration token active! Welcome to Antic Innovations."
-            else:
-                reply = "👋 Thank you for messaging us! An advisor will review your query shortly."
-                
-            # Automatically send the live WhatsApp text back to the customer's phone!
-            # send_live_whatsapp_message(customer_phone, reply)
-            
-    except Exception as e:
-        pass # Prevents minor parsing issues from freezing your background API thread
-        
-    return {"status": "success"}
-
-# Function to run this server concurrently in the background of your Streamlit app
-def run_webhook_listener():
-    uvicorn.run(api, host="0.0.0.0", port=8000)
-
-# Starts the background engine seamlessly without disturbing your main display layout
-Thread(target=run_webhook_listener, daemon=True).start()
+                    log_action(f"Added venture fund tracking node for: {firm_name.strip()}")
+                    st.success(f"Success: Committed pipeline node for {firm_name}!")
+                    st.rerun()
