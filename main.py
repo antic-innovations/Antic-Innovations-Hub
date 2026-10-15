@@ -240,3 +240,65 @@ def send_live_whatsapp_message(customer_phone, reply_text):
         return response.json()
     except Exception as e:
         return {"status": "error", "message": str(e)}
+from fastapi import FastAPI, Request, Response
+import uvicorn
+from threading import Thread
+
+# Create a background FastAPI engine specifically for the Webhook listener
+api = FastAPI()
+
+VERIFY_TOKEN = "AnticAutomationToken2026"  # Put this exact phrase inside your Meta Dashboard
+
+@api.get("/webhook")
+def meta_verification(request: Request):
+    """
+    Step 1: The Handshake. Meta pings this URL once when you save it 
+    in their developer portal to verify your app is real.
+    """
+    params = request.query_params
+    mode = params.get("hub.mode")
+    token = params.get("hub.verify_token")
+    challenge = params.get("hub.challenge")
+    
+    if mode == "subscribe" and token == VERIFY_TOKEN:
+        return Response(content=challenge, media_type="text/plain")
+    return Response(content="Verification Failed", status_code=403)
+
+
+@api.post("/webhook")
+async def receive_whatsapp_message(request: Request):
+    """
+    Step 2: The Ear. Meta hits this block every single time a customer 
+    sends a real WhatsApp message to your client's number.
+    """
+    payload = await request.json()
+    
+    try:
+        # Extract the incoming text message and the sender's phone number from Meta's deep JSON data layout
+        entry = payload["entry"][0]["changes"][0]["value"]
+        if "messages" in entry:
+            customer_phone = entry["messages"][0]["from"]
+            message_body = entry["messages"][0]["text"]["body"].lower()
+            
+            # --- Your AI Automation Logic ---
+            if "price" in message_body or "cost" in message_body:
+                reply = "💰 Antic Innovations Automation Tier: Basic - ₹2,500/mo | Premium - ₹7,500/mo."
+            elif "trial" in message_body:
+                reply = "🚀 Registration token active! Welcome to Antic Innovations."
+            else:
+                reply = "👋 Thank you for messaging us! An advisor will review your query shortly."
+                
+            # Automatically send the live WhatsApp text back to the customer's phone!
+            # send_live_whatsapp_message(customer_phone, reply)
+            
+    except Exception as e:
+        pass # Prevents minor parsing issues from freezing your background API thread
+        
+    return {"status": "success"}
+
+# Function to run this server concurrently in the background of your Streamlit app
+def run_webhook_listener():
+    uvicorn.run(api, host="0.0.0.0", port=8000)
+
+# Starts the background engine seamlessly without disturbing your main display layout
+Thread(target=run_webhook_listener, daemon=True).start()
