@@ -15,7 +15,7 @@ st.set_page_config(
 
 STATE_FILE = "antic_hub_state.json"
 # Persistent hardcoded key as requested
-OPENROUTER_API_KEY = "YOUR_ACTUAL_OPENROUTER_KEY_HERE"
+OPENROUTER_API_KEY = "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 "
 GITHUB_REPO = "YOUR_USERNAME/antic-executive-hub"
 
 
