@@ -46,7 +46,7 @@ if "ai_chat_history" not in st.session_state:
 with st.sidebar:
     st.title("⚡ Antic Control Hub")
     api_key_input = st.text_input(
-        "OpenRouter API Key",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
+        "OpenRouter API Key",
         value=os.environ.get("OPENROUTER_API_KEY", " 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 "),
         type="password",
         help="Enter your openrouter.ai key ( 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 )"
