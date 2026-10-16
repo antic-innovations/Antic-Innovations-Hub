@@ -204,3 +204,12 @@ with tab_github:
     
     st.markdown("### Deploy to Streamlit Community Cloud")
     st.info("1. Push `app.py` and `requirements.txt` to GitHub.\n2. Connect repo on share.streamlit.io.\n3. Add `OPENROUTER_API_KEY` under App Settings -> Secrets.")
+# Replace your Router Model selectbox options with this:
+selected_model = st.selectbox(
+    "Router Model",
+    [
+        "openrouter/free",  # Zero cost automatic free router
+        "poolside/laguna-xs-2.1:free",  # Dedicated free coding model
+        "openrouter/auto",  # Requires paid credits
+    ],
+)
