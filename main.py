@@ -47,9 +47,9 @@ with st.sidebar:
     st.title("⚡ Antic Control Hub")
     api_key_input = st.text_input(
         "OpenRouter API Key",
-        value=os.environ.get("OPENROUTER_API_KEY", " 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  "),
+        value=os.environ.get("OPENROUTER_API_KEY", ""),
         type="password",
-        help="Enter your openrouter.ai key (    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  .)"
+        help="Enter your openrouter.ai key ( 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 )"
     )
     selected_model = st.selectbox(
         "Router Model",
