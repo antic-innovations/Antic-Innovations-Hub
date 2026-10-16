@@ -1,153 +1,200 @@
+import base64
+import json
+import os
+import time
+from typing import Any, Dict
+import pandas as pd
+import requests
 import streamlit as st
-import json, os, pandas as pd, requests, re, urllib.parse
-from datetime import datetime
 
-st.set_page_config(page_title="Antic Innovations Control Room", page_icon="🚀", layout="wide")
-OPENROUTER_API_KEY = "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"
-DB_FILE = "database.json"
+st.set_page_config(
+    page_title="Antic Innovations Executive Hub",
+    page_icon="⚡",
+    layout="wide",
+)
 
-def parse_num(val):
-    if isinstance(val, (int, float)): return float(val)
-    if isinstance(val, str):
-        c = re.sub(r'[^0-9.-]', '', val)
-        return float(c) if c else 0.0
-    return 0.0
+STATE_FILE = "antic_hub_state.json"
+# Persistent hardcoded key as requested
+OPENROUTER_API_KEY = "YOUR_ACTUAL_OPENROUTER_KEY_HERE"
+GITHUB_REPO = "YOUR_USERNAME/antic-executive-hub"
 
-def load_data():
-    if not os.path.exists(DB_FILE):
-        return {
-            "learners": [{"id": 1, "name": "Arjun Sharma", "age_group": "Under 15 Trainer", "status": "Active", "tier": "Free Trial", "join_date": "2026-10-10", "trial_days_left": 7}],
-            "whatsapp_clients": [{"id": 1, "business_name": "Local Retailer Beta", "status": "Active", "tier": "Free Trial", "join_date": "2026-10-12", "trial_days_left": 11}],
-            "investor_pipeline": [{"id": 1, "firm": "Antic Novelty", "amount": 50000000, "stage": "Term Sheet", "status": "High Priority"}],
-            "audit_logs": [{"timestamp": "2026-10-15 11:00:00", "action": "System Initialized", "user": "System Admin"}],
-            "simulation_queue": []
-        }
+
+def load_state() -> Dict[str, Any]:
+  default = {
+      "whatsapp_replies": [
+          {
+              "trigger": "/price",
+              "response": "Hello! Retail pricing starts at ₹499.",
+          }
+      ],
+      "marketplace_orders": [{
+          "id": "ORD-101",
+          "platform": "Amazon India",
+          "sku": "ANT-RETRO-G3",
+          "qty": 2,
+          "status": "Shipped",
+      }],
+      "investor_pipeline": [{
+          "id": 1,
+          "firm": "Blume Ventures",
+          "amount": 25000000,
+          "stage": "Due Diligence",
+          "status": "High Priority",
+      }],
+      "clients": [{
+          "id": "Sumer11",
+          "company": "Sumer Enterprise Hub",
+          "status": "Active Deployment",
+      }],
+      "audit_logs": [
+          "System Boot: Antic Executive Hub Ready with Embedded Key."
+      ],
+  }
+  if os.path.exists(STATE_FILE):
     try:
-        with open(DB_FILE, "r") as f: return json.load(f)
-    except: return {"learners": [], "whatsapp_clients": [], "investor_pipeline": [], "audit_logs": [], "simulation_queue": []}
+      with open(STATE_FILE, "r", encoding="utf-8") as f:
+        loaded = json.load(f)
+        for k, v in default.items():
+          if k not in loaded:
+            loaded[k] = v
+        return loaded
+    except Exception:
+      return default
+  return default
 
-def save_data(d):
-    with open(DB_FILE, "w") as f: json.dump(d, f, indent=2)
 
-def log_action(txt):
-    d = load_data()
-    d["audit_logs"].insert(0, {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "action": txt, "user": "System Admin"})
-    save_data(d)
+def save_state(state: Dict[str, Any]):
+  with open(STATE_FILE, "w", encoding="utf-8") as f:
+    json.dump(state, f, indent=2, ensure_ascii=False)
 
-def ask_live_ai_model(prompt):
-    try:
-        res = requests.post("https://openrouter.ai",
-            headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"},
-            json={"model": "meta-llama/llama-3-8b-instruct:free", "messages": [
-                {"role": "system", "content": "You are the AI desk for Antic Novelty (Ankleshwar) & Antic Innovations. Give short, polite commercial answers."},
-                {"role": "user", "content": prompt}
-            ]}, timeout=10)
-        return res.json()["choices"]["message"]["content"]
-    except: return "🤖 Antic Novelty Desk: Welcome! How can we help with your order today?"
 
-st.sidebar.title("Antic Innovations")
-page = st.sidebar.radio("Control Center", ["System Overview", "🎓 AI Coaching", "💬 WhatsApp Sales", "🌐 3D Simulations", "📈 Investor Tracker"])
-data = load_data()
+def log_action(state: Dict[str, Any], msg: str):
+  ts = time.strftime("[%Y-%m-%d %H:%M:%S] ")
+  state["audit_logs"].insert(0, ts + msg)
+  if len(state["audit_logs"]) > 150:
+    state["audit_logs"] = state["audit_logs"][:150]
+  save_state(state)
 
-if page == "System Overview":
-    st.title("🛡️ Antic Innovations — Executive Hub")
-    c1, c2, c3 = st.columns(3)
-    tot = sum(parse_num(i.get('amount', 0)) for i in data.get("investor_pipeline", []))
-    c1.metric("Pipeline Deal Flow", f"₹{tot:,.0f}", "Antic Novelty")
-    c2.metric("WhatsApp AI Desk", "Online", "94% Reply Rate")
-    c3.metric("Coaching Adoption", f"{len([l for l in data.get('learners', []) if l.get('status')=='Active'])} Active", "Live Sync")
-    if data.get("learners"): st.bar_chart(pd.DataFrame(data["learners"])["tier"].value_counts(), color="#2e7d32")
-    for log in data.get("audit_logs", [])[:5]: st.caption(f"⏱️ {log['timestamp']} | {log['action']}")
 
-elif page == "🎓 AI Coaching":
-    st.title("🎓 Specialized AI Coaching Manager")
-    with st.form("add_learner", clear_on_submit=True):
-        nm = st.text_input("Full Registered Name")
-        ag = st.selectbox("Target Cluster", ["Under 15 Trainer", "Standard Partner"])
-        st_val = st.selectbox("Status", ["Active", "Inactive"])
-        if st.form_submit_button("Provision Profile") and nm.strip():
-            nid = max([l.get("id", 0) for l in data.get("learners", [])], default=0) + 1
-            data.setdefault("learners", []).append({"id": nid, "name": nm.strip(), "age_group": ag, "status": st_val, "tier": "Free Trial", "join_date": datetime.now().strftime("%Y-%m-%d"), "trial_days_left": 14})
-            save_data(data); log_action(f"Provisioned profile: {nm}"); st.rerun()
-    if data.get("learners"): st.dataframe(pd.DataFrame(data["learners"]), use_container_width=True, hide_index=True)
+if "hub_state" not in st.session_state:
+  st.session_state.hub_state = load_state()
+state = st.session_state.hub_state
 
-elif page == "💬 WhatsApp Sales":
-    st.title("💬 WhatsApp AI Sales Automation")
-    st.caption("Shop Desk Bridge for Antic Novelty & B2B Clients (Sumer11)")
-    
-    umsg = st.text_input("Customer Inbound Message:", placeholder="e.g., Do you have bulk novelty items available?")
-    cust_phone = st.text_input("Customer Phone (optional, e.g., 919876543210):")
-    
-    if st.button("🤖 Generate Smart AI Desk Reply"):
-        ans = ask_live_ai_model(umsg or "Catalog and store hours?")
-        st.session_state.ai_draft = ans
-        st.code(ans, language="markdown")
-        log_action("Generated AI Shop Reply")
 
-    # One-Click Dispatch to WhatsApp Web / App
-    draft_text = getattr(st.session_state, "ai_draft", "")
-    if draft_text:
-        encoded_msg = urllib.parse.quote(draft_text)
-        phone_param = f"phone={cust_phone.strip()}&" if cust_phone.strip() else ""
-        wa_url = f"https://whatsapp.com?{phone_param}text={encoded_msg}"
-        st.markdown(f'<a href="{wa_url}" target="_blank"><button style="background-color:#25D366; color:white; border:none; padding:10px 20px; font-size:16px; border-radius:5px; font-weight:bold; cursor:pointer;">🚀 Open WhatsApp with Draft Reply</button></a>', unsafe_allow_html=True)
-        st.write("")
+def commit_file_to_github(
+    file_path: str, content_str: str, commit_msg: str
+) -> str:
+  github_token = st.secrets.get("GITHUB_TOKEN", os.getenv("GITHUB_TOKEN", ""))
+  if not github_token:
+    return "⚠️ GITHUB_TOKEN missing for auto-commit."
+  url = f"https://github.com{GITHUB_REPO}/contents/{file_path}"
+  headers = {
+      "Authorization": f"Bearer {github_token}",
+      "Accept": "application/vnd.github+json",
+  }
+  sha = None
+  r_get = requests.get(url, headers=headers, timeout=10)
+  if r_get.status_code == 200:
+    sha = r_get.json().get("sha")
+  b64_content = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
+  payload = {"message": commit_msg, "content": b64_content, "branch": "main"}
+  if sha:
+    payload["sha"] = sha
+  r_put = requests.put(url, headers=headers, json=payload, timeout=15)
+  if r_put.status_code in (200, 201):
+    return f"✅ Committed {file_path}"
+  return f"❌ Error {r_put.status_code}"
 
-    if data.get("whatsapp_clients"): st.dataframe(pd.DataFrame(data["whatsapp_clients"]), use_container_width=True, hide_index=True)
-    
-    with st.expander("➕ Onboard B2B Client"):
-        with st.form("add_b2b", clear_on_submit=True):
-            b_nm = st.text_input("Business Name")
-            b_tr = st.selectbox("Tier", ["Free Trial", "Basic Automation (₹2,500/mo)", "Premium Enterprise (₹7,500/mo)"])
-            if st.form_submit_button("Deploy Client") and b_nm.strip():
-                cid = max([c.get("id", 0) for c in data.get("whatsapp_clients", [])], default=0) + 1
-                tier_clean = b_tr.split(" (")[0]
-                data.setdefault("whatsapp_clients", []).append({"id": cid, "business_name": b_nm.strip(), "status": "Active", "tier": tier_clean, "join_date": datetime.now().strftime("%Y-%m-%d"), "trial_days_left": 14})
-                save_data(data); log_action(f"Onboarded client: {b_nm}"); st.rerun()
 
-    with st.expander("⚡ Upgrade Client Tier"):
-        with st.form("upgrade_b2b", clear_on_submit=True):
-            client_names = [c["business_name"] for c in data.get("whatsapp_clients", [])]
-            target_client = st.selectbox("Select Business to Upgrade", client_names if client_names else ["No clients"])
-            new_tier = st.selectbox("New Service Tier", ["Basic Automation", "Premium Enterprise", "Free Trial"])
-            new_status = st.selectbox("Account Status", ["Active", "Suspended"])
-            if st.form_submit_button("Confirm Tier Upgrade") and client_names:
-                for c in data["whatsapp_clients"]:
-                    if c["business_name"] == target_client:
-                        c["tier"] = new_tier.split(" (")
-                        c["status"] = new_status
-                        c["trial_days_left"] = 0 if new_tier in ["Basic Automation", "Premium Enterprise"] else 14
-                save_data(data)
-                log_action(f"Upgraded {target_client} to {new_tier.split(' (')}")
-                st.success(f"Upgraded {target_client} successfully!")
-                st.rerun()
+def run_ai(instruction: str, ctx: str) -> str:
+  headers = {
+      "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+      "Content-Type": "application/json",
+  }
+  payload = {
+      "model": "meta-llama/llama-3.1-70b-instruct",
+      "messages": [
+          {"role": "user", "content": f"Context: {ctx}\nCommand: {instruction}"}
+      ],
+  }
+  try:
+    r = requests.post(
+        "https://openrouter.ai",
+        headers=headers,
+        json=payload,
+        timeout=20,
+    )
+    return (
+        r.json()["choices"][0]["message"]["content"]
+        if r.status_code == 200
+        else f"API Error: {r.text}"
+    )
+  except Exception as e:
+    return str(e)
 
-elif page == "🌐 3D Simulations":
-    st.title("🌐 3D Virtual Simulations Node")
-    uf = st.file_uploader("Upload .stl / .obj / .glb", type=["stl", "obj", "glb"], label_visibility="collapsed")
-    if uf:
-        if not any(f.get("FileName") == uf.name for f in data.get("simulation_queue", [])):
-            data.setdefault("simulation_queue", []).append({"FileName": uf.name, "FileType": uf.type, "Status": "Queued"})
-            save_data(data); log_action(f"Uploaded 3D asset: {uf.name}"); st.rerun()
-    if data.get("simulation_queue"):
-        st.dataframe(pd.DataFrame(data["simulation_queue"]), use_container_width=True)
-        if st.button("Flush Queue"): data["simulation_queue"] = []; save_data(data); st.rerun()
-    else: st.info("Asset queue empty.")
 
-elif page == "📈 Investor Tracker":
-    st.title("📈 B2B Investor Pipeline Tracker")
-    df_i = pd.DataFrame(data.get("investor_pipeline", []))
-    if not df_i.empty:
-        df_d = df_i.copy()
-        df_d["amount"] = df_d["amount"].apply(lambda x: f"₹{parse_num(x):,.0f}")
-        st.dataframe(df_d, use_container_width=True, hide_index=True)
-    else: st.info("No active capital allocators recorded.")
-    with st.expander("📝 Commit Allocation Node"):
-        with st.form("add_inv", clear_on_submit=True):
-            fnm = st.text_input("Firm Entity Name")
-            amt = st.number_input("Amount (INR)", min_value=100000, value=50000000)
-            stg = st.selectbox("Stage", ["Discovery", "Due Diligence", "Term Sheet", "Closed-Funded"])
-            if st.form_submit_button("Submit Entry") and fnm.strip():
-                iid = max([i.get("id", 0) for i in data.get("investor_pipeline", [])], default=0) + 1
-                data.setdefault("investor_pipeline", []).append({"id": iid, "firm": fnm.strip(), "amount": amt, "stage": stg, "status": "High Priority"})
-                save_data(data); log_action(f"Committed investor allocation: {fnm}"); st.rerun()
+user_email = st.secrets.get("USER_EMAIL", "owner@anticinnovations.com")
+if user_email == "sumer11@clientdomain.com":
+  st.title("⚡ Sumer Enterprise Workspace (mwu.streamlit.app)")
+  st.success("Client: Sumer11 | Status: Active Deployment")
+  if state.get("investor_pipeline"):
+    df_c = pd.DataFrame(state["investor_pipeline"])[
+        ["id", "firm", "amount", "stage"]
+    ]
+    df_c["amount"] = df_c["amount"].apply(
+        lambda x: f"₹{x:,.0f}" if isinstance(x, (int, float)) else str(x)
+    )
+    st.dataframe(df_c, use_container_width=True, hide_index=True)
+else:
+  with st.sidebar:
+    st.title("⚡ Antic Hub Control")
+    page = st.radio(
+        "Modules",
+        ["🤖 AI Commander", "📊 Investors (₹)", "💬 WhatsApp", "📦 Orders", "📜 Logs"],
+    )
+    if st.button("🧹 Flush Cache"):
+      st.cache_resource.clear()
+      log_action(state, "Cache flushed.")
+      st.rerun()
+
+  if page == "🤖 AI Commander":
+    st.title("🤖 Autonomous AI Commander")
+    prompt = st.text_area(
+        "Instruction", placeholder="Find 3 seed investors in India..."
+    )
+    if st.button("🚀 Execute"):
+      res = run_ai(prompt, str(state))
+      st.markdown(res)
+      log_action(state, f"Executed AI: {prompt[:40]}")
+    if st.button("💾 Commit State to GitHub"):
+      st.info(
+          commit_file_to_github(
+              "antic_hub_state.json",
+              json.dumps(state, indent=2),
+              "Auto sync state",
+          )
+      )
+  elif page == "📊 Investors (₹)":
+    st.title("📊 B2B Investor Pipeline")
+    df = pd.DataFrame(state.get("investor_pipeline", []))
+    if not df.empty:
+      df["amount"] = df["amount"].apply(lambda x: f"₹{x:,.0f}")
+      st.dataframe(df, use_container_width=True, hide_index=True)
+  elif page == "💬 WhatsApp":
+    st.title("💬 WhatsApp Replies")
+    st.dataframe(
+        pd.DataFrame(state.get("whatsapp_replies", [])),
+        use_container_width=True,
+        hide_index=True,
+    )
+  elif page == "📦 Orders":
+    st.title("📦 Marketplace Orders")
+    st.dataframe(
+        pd.DataFrame(state.get("marketplace_orders", [])),
+        use_container_width=True,
+        hide_index=True,
+    )
+  elif page == "📜 Logs":
+    st.title("📜 Audit Ledger")
+    for l in state.get("audit_logs", []):
+      st.text(l)
